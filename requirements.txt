@@ -1,8 +1,7 @@
 flask==3.0.3
 gunicorn==22.0.0
-groq==0.9.0
+groq==0.28.0
 requests==2.32.3
 fuzzywuzzy==0.18.0
 rapidfuzz==3.14.5
 twilio==9.3.3
-
