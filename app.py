@@ -809,17 +809,19 @@ function badgeHtml(s) {
 }
 
 // ── Conversations ──────────────────────────────────────────────────────────────
+let convInterval = null;
 async function loadConvs() {
   const res = await fetch(API+'/admin/conversations');
   allConvs = await res.json();
   renderConvList(allConvs);
   if (selectedPhone) renderChat(selectedPhone);
-  setInterval(async()=>{
+  if (convInterval) clearInterval(convInterval);
+  convInterval = setInterval(async()=>{
     const r = await fetch(API+'/admin/conversations');
     allConvs = await r.json();
     renderConvList(allConvs);
     if (selectedPhone) renderChat(selectedPhone);
-  }, 5000);
+  }, 15000);
 }
 
 function renderConvList(convs) {
