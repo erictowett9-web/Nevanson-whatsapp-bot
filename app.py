@@ -547,6 +547,20 @@ def delete_product(product_name):
         return jsonify({"success": True})
     return jsonify({"error": "Product not found"}), 404
 
+@app.route("/admin/products/<path:product_name>/rename", methods=["PUT"])
+@admin_required
+def rename_product(product_name):
+    data = request.get_json()
+    new_name = data.get("new_name", "").strip()
+    if not new_name:
+        return jsonify({"error": "New name required"}), 400
+    if product_name not in PRODUCTS:
+        return jsonify({"error": "Product not found"}), 404
+    if new_name in PRODUCTS:
+        return jsonify({"error": "A product with that name already exists"}), 400
+    PRODUCTS[new_name] = PRODUCTS.pop(product_name)
+    return jsonify({"success": True, "new_name": new_name})
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ADMIN DASHBOARD (served as HTML)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -926,6 +940,25 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   </div>
 </div>
 
+<!-- RENAME PRODUCT MODAL -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Rename Product</div>
+    <div class="form-group">
+      <label class="form-label">Current Name</label>
+      <input class="form-input" id="rename-old" disabled style="opacity:0.5">
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Name</label>
+      <input class="form-input" id="rename-new" placeholder="Enter new product name">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRenameModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD PRODUCT MODAL -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
@@ -1260,8 +1293,40 @@ function renderProducts(products) {
           <button class="btn btn-primary" onclick="savePrice('${name.replace(/'/g,"\\'")}')">Save</button>
         </div>
       </td>
-      <td><button class="btn btn-danger" onclick="deleteProduct('${name.replace(/'/g,"\\'")}')">Delete</button></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="openRenameModal('${name.replace(/'/g,"\\'")}')">✏️ Rename</button>
+        <button class="btn btn-danger" onclick="deleteProduct('${name.replace(/'/g,"\\'")}')">Delete</button>
+      </td>
     </tr>`).join('');
+}
+
+function openRenameModal(name) {
+  document.getElementById('rename-old').value = name;
+  document.getElementById('rename-new').value = name;
+  document.getElementById('rename-modal').classList.add('open');
+  setTimeout(() => document.getElementById('rename-new').focus(), 100);
+}
+
+function closeRenameModal() {
+  document.getElementById('rename-modal').classList.remove('open');
+}
+
+async function submitRename() {
+  const oldName = document.getElementById('rename-old').value;
+  const newName = document.getElementById('rename-new').value.trim();
+  if (!newName || newName === oldName) { closeRenameModal(); return; }
+  const res = await fetch(API + '/admin/products/' + encodeURIComponent(oldName) + '/rename', {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({new_name: newName})
+  });
+  const data = await res.json();
+  if (res.ok) {
+    closeRenameModal();
+    await loadProducts();
+    showToast('Renamed to: ' + newName);
+  } else {
+    showToast('Error: ' + data.error);
+  }
 }
 
 function filterProducts(q) {
