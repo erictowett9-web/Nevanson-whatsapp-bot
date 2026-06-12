@@ -5,3 +5,4 @@ requests==2.32.3
 fuzzywuzzy==0.18.0
 rapidfuzz==3.14.5
 twilio==9.3.3
+psycopg2-binary==2.9.9
